@@ -22,8 +22,12 @@ void print_menu();
 string profile_string(map<string, string> _profile);
 bool sort_by_name(map<string, string> _i, map<string, string> _j);
 
-void find_user_data(vector<map<string, string>> _profiles);
+int find_user_data(vector<map<string, string>> _profiles);
+void add_user(vector<map<string, string>>& _profiles);
+void edit_user(vector<map<string, string>>& _profiles);
+
 void get_input(string &_str);
+string get_input();
 void clean_input();
 vector<string> tokenize_string(string _str);
 string lowercase(string _str);
@@ -46,21 +50,6 @@ const string	FILE_NAME = "profiles.dtb";
 
 int _tmain(int argc, _TCHAR* argv[])
 {
-	/*
-	ofstream file = file_open_write(FILE_NAME);
-	if (file.is_open())
-	{
-		file << "Fleischer Garrett 5309383912 05/07/1994" << endl
-			<< "Fleischer Geneva 5309383912 07/24/1994" << endl
-			<< "Meadows Stacy 5309383912 07/24/1994" << endl
-			<< "Greenspan Chet 5309383912 07/24/1994" << endl
-			<< "Shapiro Cam 5309383912 07/24/1994" << endl
-			<< "Nicholson Ritchie 5309383912 07/24/1994" << endl
-			<< "Clive Adams 5309383912 07/24/1994" << endl
-			<< "Fleischer Corinne 5309383912 05/07/1994";
-	}
-	file_close(file);
-	*/
 	vector<map<string, string>> profiles = read_data(FILE_NAME);
 
 	int input = 0;
@@ -72,24 +61,30 @@ int _tmain(int argc, _TCHAR* argv[])
 		{
 			case 1:
 				find_user_data(profiles);
+				get_input();
 			break;
 			case 2:
-
+				add_user(profiles);
+				get_input();
 			break;
 			case 3:
-				
+				edit_user(profiles);
+				get_input();
 			break;
 			case 4:
 				print_data(profiles);
+				get_input();
 			break;
 			case 5:
 				cout << endl << "Goodbye!" << endl;
+				get_input();
 			break;
 			default:
 				cout << endl << "invalid input" << endl;
 			break;
 		}
 
+		cout.flush();
 		clean_input();
 	}
 
@@ -113,11 +108,12 @@ void print_data(vector<map<string, string>> _profiles)
 
 void print_menu()
 {
-	cout << "--------------------------------------------------------------" << endl;
-	cout << "1. Find a person's information" << endl
+	cout << endl << "--------------------------------------------------------------" << endl;
+	cout << "\tPersonal Database" << endl << endl
+		<< "1. Find a person's information" << endl
 		<< "2. Add a person to the database" << endl
 		<< "3. Edit a person's information" << endl
-		<< "4. Display all records" << endl
+		<< "4. Display all profiles" << endl
 		<< "5. Quit" << endl << endl
 		<< "input: ";
 }
@@ -182,7 +178,7 @@ bool sort_by_name(map<string, string> _i, map<string, string> _j)
 
 
 //menu choices
-void find_user_data(vector<map<string, string>> _profiles)
+int find_user_data(vector<map<string, string>> _profiles)
 {
 	cout << endl << "Search For: ";
 	string search_name;
@@ -198,17 +194,28 @@ void find_user_data(vector<map<string, string>> _profiles)
 
 		bool lfound = false;
 		bool ffound = false;
+		int lpos = -1;
 		for (int j = 0; j < tokens.size(); j++)
 		{
-			if (!lfound) lfound = (lowercase(lname).find(lowercase(tokens[j])) != string::npos);
-			if (!ffound) ffound = (lowercase(fname).find(lowercase(tokens[j])) != string::npos);
+			if (!lfound)
+			{
+				lfound = (lowercase(lname).find(lowercase(tokens[j])) == 0);
+				if(lfound) lpos = j;
+			}
+			if (!ffound && j != lpos) ffound = (lowercase(fname).find(lowercase(tokens[j])) == 0);
 		}
+
 
 		if (tokens.size() > 1)
 		{
+			_profiles[i]["index"] = to_string(i);
 			if (lfound && ffound) results.push_back(_profiles[i]);
 		}
-		else if (lfound || ffound) results.push_back(_profiles[i]);
+		else if (lfound || ffound) 
+		{
+			_profiles[i]["index"] = to_string(i);
+			results.push_back(_profiles[i]);
+		}
 	}
 
 	int rsize = results.size();
@@ -226,17 +233,91 @@ void find_user_data(vector<map<string, string>> _profiles)
 		choice = max(min(choice, rsize), 1) - 1;
 
 		cout << endl << profile_string(results[choice]) << endl;
+		return stoi(results[choice]["index"]);
 	}
 	else if (rsize == 1)
 	{
 		cout << endl << profile_string(results[0]) << endl;
+		return stoi(results[0]["index"]);
 	}
 	else
 	{
 		cout << endl << "No matches found." << endl;
+		return -1;
 	}
 }
 
+void add_user(vector<map<string, string>>& _profiles)
+{
+	map<string, string> mp;
+	clean_input();
+	cout << "Enter last name: ";
+	cin >> mp["lastname"];
+	clean_input();
+
+	cout << "Enter first name: ";
+	cin >> mp["firstname"];
+	clean_input();
+
+	cout << "Enter phone number: ";
+	cin >> mp["phone"];
+	clean_input();
+
+	cout << "Enter Birth Date (mm/dd/yyyy): ";
+	cin >> mp["bdate"];
+	clean_input();
+
+	cout << endl << "New Profile: " << profile_string(mp) << endl;
+
+	_profiles.push_back(mp);
+	sort(_profiles.begin(), _profiles.end(), sort_by_name);
+}
+
+void edit_user(vector<map<string, string>>& _profiles)
+{
+	int index = find_user_data(_profiles);
+
+	if (index > -1)
+	{
+		string lname = _profiles[index]["lastname"];
+		string fname = _profiles[index]["firstname"];
+		string phone = _profiles[index]["phone"];
+		string bdate = _profiles[index]["bdate"];
+
+		string input;
+		cout << endl << "Edit Data or press enter to leave as is:" << endl << endl
+			<< "Last Name (" + lname + ") : ";
+		get_input(input);
+		if (input.length() > 0)
+			lname = input;
+
+		cout << endl << "First Name (" + fname + ") : ";
+		get_input(input);
+		if (input.length() > 0)
+			fname = input;
+
+		cout << endl << "Phone Number (" + phone + ") : ";
+		get_input(input);
+		if (input.length() > 0)
+			phone = input;
+
+		cout << endl << "Birth Date (" + bdate + ") : ";
+		get_input(input);
+		if (input.length() > 0)
+			bdate = input;
+
+		cout << endl;
+
+		_profiles[index]["lastname"] = lname;
+		_profiles[index]["firstname"] = fname;
+		_profiles[index]["phone"] = phone;
+		_profiles[index]["bdate"] = bdate;
+
+		cout << "Updated Info: " << profile_string(_profiles[index]) << endl;
+
+		sort(_profiles.begin(), _profiles.end(), sort_by_name);
+	}
+}
 // ** UTILITY FUNCTIONS **
 
 //strings
@@ -269,6 +350,16 @@ void get_input(string &_str)
 	cin.ignore(cin.rdbuf()->in_avail());
 	getline(cin, _str);
 	clean_input();
+}
+string get_input()
+{
+	string str;
+
+	cin.ignore(cin.rdbuf()->in_avail());
+	getline(cin, str);
+	clean_input();
+
+	return str;
 }
 
 void clean_input()
