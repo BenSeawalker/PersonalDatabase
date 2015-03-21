@@ -9,6 +9,7 @@
 #include <string>
 #include <algorithm>
 #include <vector>
+#include <sstream>
 using namespace std;
 
 //forward declaration
@@ -20,6 +21,13 @@ void print_data(vector<map<string, string>> _profiles);
 void print_menu();
 string profile_string(map<string, string> _profile);
 bool sort_by_name(map<string, string> _i, map<string, string> _j);
+
+void find_user_data(vector<map<string, string>> _profiles);
+void get_input(string &_str);
+void clean_input();
+vector<string> tokenize_string(string _str);
+string lowercase(string _str);
+string uppercase(string _str);
 
 //utility
 ifstream file_open_read(string _filepath);
@@ -63,7 +71,7 @@ int _tmain(int argc, _TCHAR* argv[])
 		switch (input)
 		{
 			case 1:
-
+				find_user_data(profiles);
 			break;
 			case 2:
 
@@ -74,7 +82,15 @@ int _tmain(int argc, _TCHAR* argv[])
 			case 4:
 				print_data(profiles);
 			break;
+			case 5:
+				cout << endl << "Goodbye!" << endl;
+			break;
+			default:
+				cout << endl << "invalid input" << endl;
+			break;
 		}
+
+		clean_input();
 	}
 
 	save_data(FILE_NAME, profiles);
@@ -98,9 +114,9 @@ void print_data(vector<map<string, string>> _profiles)
 void print_menu()
 {
 	cout << "--------------------------------------------------------------" << endl;
-	cout << "1. Find a persion's information" << endl
+	cout << "1. Find a person's information" << endl
 		<< "2. Add a person to the database" << endl
-		<< "3. Edit a persion's information" << endl
+		<< "3. Edit a person's information" << endl
 		<< "4. Display all records" << endl
 		<< "5. Quit" << endl << endl
 		<< "input: ";
@@ -155,7 +171,7 @@ void save_data(string _filename, vector<map<string, string>> _profiles)//char _f
 //data
 string profile_string(map<string, string> _profile)
 {
-	return _profile["lastname"] + "\t" + _profile["firstname"] + "\t" + _profile["phone"] + "\t" + _profile["bdate"];
+	return _profile["lastname"] + " " + _profile["firstname"] + " " + _profile["phone"] + " " + _profile["bdate"];
 }
 
 bool sort_by_name(map<string, string> _i, map<string, string> _j)
@@ -164,8 +180,102 @@ bool sort_by_name(map<string, string> _i, map<string, string> _j)
 }
 
 
+
+//menu choices
+void find_user_data(vector<map<string, string>> _profiles)
+{
+	cout << endl << "Search For: ";
+	string search_name;
+	get_input(search_name);
+
+	vector<string> tokens = tokenize_string(search_name);
+
+	vector<map<string, string>> results;
+	for (int i = 0; i < _profiles.size(); i++)
+	{
+		string fname = _profiles[i]["firstname"];
+		string lname = _profiles[i]["lastname"];
+
+		bool lfound = false;
+		bool ffound = false;
+		for (int j = 0; j < tokens.size(); j++)
+		{
+			if (!lfound) lfound = (lowercase(lname).find(lowercase(tokens[j])) != string::npos);
+			if (!ffound) ffound = (lowercase(fname).find(lowercase(tokens[j])) != string::npos);
+		}
+
+		if (tokens.size() > 1)
+		{
+			if (lfound && ffound) results.push_back(_profiles[i]);
+		}
+		else if (lfound || ffound) results.push_back(_profiles[i]);
+	}
+
+	int rsize = results.size();
+	if (rsize > 1)
+	{
+		cout << "did you mean?" << endl;
+		for (int i = 0; i < rsize; i++)
+		{
+			cout << i+1 << ". " << results[i]["lastname"] << " " << results[i]["firstname"] << endl;
+		}
+		cout << endl << "input: ";
+		
+		int choice;
+		cin >> choice;
+		choice = max(min(choice, rsize), 1) - 1;
+
+		cout << endl << profile_string(results[choice]) << endl;
+	}
+	else if (rsize == 1)
+	{
+		cout << endl << profile_string(results[0]) << endl;
+	}
+	else
+	{
+		cout << endl << "No matches found." << endl;
+	}
+}
+
 // ** UTILITY FUNCTIONS **
 
+//strings
+vector<string> tokenize_string(string _str)
+{
+	vector<string> tokens;
+	string buffer;
+	stringstream ss(_str);
+
+	while (ss >> buffer)
+		tokens.push_back(buffer);
+
+	return tokens;
+}
+
+string lowercase(string _str)
+{
+	transform(_str.begin(), _str.end(), _str.begin(), ::towlower);
+	return _str;
+}
+string uppercase(string _str)
+{
+	transform(_str.begin(), _str.end(), _str.begin(), ::towupper);
+	return _str;
+}
+
+//input
+void get_input(string &_str)
+{
+	cin.ignore(cin.rdbuf()->in_avail());
+	getline(cin, _str);
+	clean_input();
+}
+
+void clean_input()
+{
+	cin.clear();
+	cin.ignore(cin.rdbuf()->in_avail());
+}
 
 //file manipulation
 ifstream file_open_read(string _filepath)
